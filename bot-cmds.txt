@@ -1,0 +1,3 @@
+trade -
+info - my personal research info about coin
+changeinfo - change the above info of coin
