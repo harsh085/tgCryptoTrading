@@ -6,7 +6,7 @@ import pandas as pd
 def fun(file):
     try:
         base_url = f"https://api.telegram.org/bot{TOKEN}/sendDocument"
-        # my_file = open("/DATA/harshit_2311ai52/tgBot/csv_files/"+file, "rb")
+        # my_file = open("//tgBot/csv_files/"+file, "rb")
         my_file = open(file, "rb")      # full_path
         filename = datetime.now().strftime(file.replace('.csv','').split(r'/')[-1]+"_%d%b%y.csv").lower()
         parameters = {

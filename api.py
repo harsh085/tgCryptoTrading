@@ -21,7 +21,7 @@ def get_all():
     try:
       response = session.get(url, params=params)
       data = json.loads(response.text)
-      # with open('/DATA/harshit_2311ai52/tgBot/coinmarketcap.json', 'w') as f:
+      # with open('/t/coinmarketcap.json', 'w') as f:
       #     json.dump(data, f, indent=2)
       return(data['data'])
       # for x in data['data']:
