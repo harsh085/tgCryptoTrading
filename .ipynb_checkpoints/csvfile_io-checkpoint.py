@@ -1,5 +1,5 @@
 import datetime
-from config import TRADE_DCA_PATH, TRADE_Analysis_PATH, Daily_df
+from config import TRADE_DCA_PATH, TRADE_Analysis_PATH
 import pandas as pd
 import numpy as np
 import api
@@ -18,16 +18,12 @@ def handle_msg(list_s):
         return (trade_command(l, log))
     elif l[0] == "tradeinfo" and len(l) == 2:
         return tradeinfo_command(l)
-    elif l[0] == "fetchrealtimedata":
-        if len(l) == 1:
-            return fetchrealtimedata(False)
-        else:
-            return fetchrealtimedata(True)
-
+    elif l[0] == "fetchrealtimedata" and len(l) == 1:
+        return fetchrealtimedata()
     # elif l[0] == "alltrades" and len(l) == 1:
     #     return calc_trade_profit()
-    # elif l[0] == "sendfile" and len(l) == 1:
-    #     return sendFile_fun()
+    elif l[0] == "sendfile" and len(l) == 1:
+        return sendFile.fun()
     elif l[0] == "allremarks" and len(l) == 1:
         return all_remarks()
     elif l[0] == "filter" and len(l) == 3 : #filter col_name symbol(=,<,>..) value
@@ -43,22 +39,17 @@ def handle_msg(list_s):
 
 # def filter():
 
-# def sendFile_fun():   # called on 
-#     sendFile.fun("realtime_analysis.csv")
-        
+
 def trade_command(l, log):
     log = log + "trade_command(): "
     try:
-        # date = datetime.date.today()
+        date = datetime.date.today()
         # l = list_s.replace("@", " ").split(" ")
         exchange = l[1].lower()
         if exchange not in ["bh", "bk", "by", "ku", "ga"]:
             return log + "wrong CEx - bh, bk, by, ku, ga \n"
         coin = l[2].upper()
-        try:
-            lot_size = float(l[3])
-        except:
-            lot_size = str(l[3])
+        lot_size = float(l[3])
         price = float(l[4])
         try:
             name = l[5]
@@ -115,14 +106,7 @@ def trade_dca(ex, coin, lot_size, price, buyorsell, name):
                 df.loc[df['coin'] == coin, [ex + '_price', ex + "_size"]] = dca_price_buy(old_price, old_size, price,
                                                                                           lot_size)
             else:
-                temp = False
-                try:
-                    lot_size = lot_size.lower()
-                    if lot_size == 'all':
-                        temp = dca_price_sell(old_price, old_size, price, old_size)
-                except:
-                    temp = dca_price_sell(old_price, old_size, price, lot_size)
-
+                temp = dca_price_sell(old_price, old_size, price, lot_size)
                 if temp == False:
                     # tradeinfo_command(["c",coin])
                     return log + "Failed - no trades\n" + tradeinfo_command(["tradeinfo", coin])
@@ -221,7 +205,6 @@ def calc_trade_profit():            # tgbot cmd = alltrades
         log = log + "success\n"
         # df_new = np.where(df["bk_curr_profit"]>10.0 or df["bk_curr_profit"]<-10.0 )
         # log = log + "\n" +tradeinfo_command(["else",c])
-        log += sendFile.fun(TRADE_Analysis_PATH)
         return log
     except Exception as e:
         return log + str(e) + "\n"
@@ -245,30 +228,8 @@ def tradesupby(l):
         return log + str(e) + "\n"
     return log
 
-def daily_all_coins_data(df, json_df, col_name):
-    # df[col_name+'vol'] = 0.0
-    # df[col_name+'perc'] = 0.0
-    start_dynamic_cols = 5
-    df.insert(start_dynamic_cols, col_name+'vol', 0.0)
-    df.insert(start_dynamic_cols+1, col_name+'perc', 0.0)
-    for coin in df['coin']:
-        name = df[df['coin'] == coin]['name'].values[0]
-        try:
-            vol_change = json_df[(json_df['symbol'] == coin) & (json_df['name'] == name)]['quote.USD.volume_change_24h'].values[0]
-            perc_change = json_df[(json_df['symbol'] == coin) & (json_df['name'] == name)]['quote.USD.percent_change_24h'].values[0]
-            # df
-            df.loc[(df['coin'] == coin) & (df['name'] == name),[col_name+'vol',col_name+'perc']] = [vol_change,perc_change]
-        except:
-            # vol_change = 0
-            # perc_change = 0
-            pass
-    df['vol_avg7'] = (df.iloc[:, start_dynamic_cols] + df.iloc[:, 7] + df.iloc[:, 9] + df.iloc[:, 11] + df.iloc[:, 13] + df.iloc[:, 15]+ df.iloc[:, 17]) / 7
-    df['perc_avg7'] = (df.iloc[:, start_dynamic_cols+1] + df.iloc[:, 8] + df.iloc[:, 10] + df.iloc[:, 12] + df.iloc[:, 14]+ df.iloc[:, 16] + df.iloc[:, 18]) / 7
-    df.to_csv(Daily_df,index=False)
-    return(sendFile.fun(Daily_df))
-
-def fetchrealtimedata(booll):          #tgbot command = fetchrealtimedata
-    log = "Fetching latest price- \n"
+def fetchrealtimedata():          #tgbot command = fetchrealtimedata
+    log = "Fetching latest price- "
     try:
         df = pd.read_csv(TRADE_DCA_PATH)
         df_analysis = pd.read_csv(TRADE_Analysis_PATH)
@@ -318,24 +279,10 @@ def fetchrealtimedata(booll):          #tgbot command = fetchrealtimedata
         
         df_analysis.to_csv(TRADE_Analysis_PATH, index=False)
         df.to_csv(TRADE_DCA_PATH, index=False)
-        # ================================================================
-        if booll:
-            daily_df = pd.read_csv(Daily_df)
-            col_name_like = datetime.datetime.now().strftime("%a%d%b%y_").lower()
-            # print(col_name_like)
-            has_column = any(col_name_like in col for col in daily_df.columns)
-            # print(has_column)
-            if not has_column:
-                # print("truee")
-                log += daily_all_coins_data(daily_df, json_df, col_name_like)
-            
-        # ================================================================
+        # calc_trade_profit(log)
         return log + "Success" + "\n" + calc_trade_profit()
-
     except Exception as e:
         return log + str(e) + "\n"
-
-
 
 '''
 def tradehistory_command(cmd):
